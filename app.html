@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WebSocket Test</title>
+</head>
+<body>
+  <h2>🔌 WebSocket Test</h2>
+  <div id="status">Ulanmoqda...</div>
+  <ul id="messages"></ul>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://localhost:4000'); // NestJS server URL
+
+    const statusEl = document.getElementById('status');
+    const messagesEl = document.getElementById('messages');
+
+    socket.on('connect', () => {
+      statusEl.textContent = `✅ Ulandi: ${socket.id}`;
+    });
+
+    socket.on('disconnect', () => {
+      statusEl.textContent = '🔴 Uzildi';
+    });
+
+    socket.on('message.created', (message) => {
+      const li = document.createElement('li');
+      li.textContent = `📩 Yangi xabar: ${message.content}`;
+      messagesEl.appendChild(li);
+    });
+
+    socket.on('translationUpdate', (data) => {
+      const li = document.createElement('li');
+      li.textContent = `🌐 Tarjima: ${data.translatedText}`;
+      messagesEl.appendChild(li);
+    });
+  </script>
+</body>
+</html>

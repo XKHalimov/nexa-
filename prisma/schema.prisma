@@ -1,0 +1,143 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  username  String?
+  password  String
+  firstName String?
+  lastName  String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+
+  profile              Profile?
+  conversationsCreated Conversation[]       @relation("UserCreatedConversations")
+  members              ConversationMember[]
+  messages             Message[]
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(uuid()) @db.Uuid
+  firstName String?
+  lastName  String?
+  userId    String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  isDeleted Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Conversation {
+  id            String   @id @default(uuid()) @db.Uuid
+  title         String?
+  bio           String?
+  avatar        String?
+  isGroup       Boolean  @default(false)
+  isDeleted     Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String?  @db.Uuid
+  lastMessageId String?  @db.Uuid
+  lastMessageAt DateTime?
+
+  createdBy User?                @relation("UserCreatedConversations", fields: [createdById], references: [id])
+  members   ConversationMember[]
+  messages  Message[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  userId         String       @db.Uuid
+  joinedAt       DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @db.Uuid
+  senderId       String   @db.Uuid
+  content        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  isDeleted      Boolean  @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  translations Translation[]
+
+  @@map("messages")
+}
+
+model Translation {
+  id             String   @id @default(uuid()) @db.Uuid
+  messageId      String   @db.Uuid
+  sourceLang     String
+  targetLang     String
+  translatedText String?
+  status         String   @default("pending")
+  provider       String?
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  message   Message             @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  outboxes  TranslationOutbox[]
+
+  @@map("translations")
+}
+
+enum OutboxStatus {
+  queued
+  processing
+  processed
+  failed
+}
+
+model TranslationOutbox {
+  id            String       @id @default(uuid()) @db.Uuid
+  translationId String       @db.Uuid
+  payload       Json
+  status        OutboxStatus @default(queued)
+  attempts      Int          @default(0)
+  error         String?
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+
+  translation Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@map("translation_outbox")
+}
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  table_name String
+  operation  String
+  row_id     String?  @db.Uuid
+  actor_id   String?  @db.Uuid
+  changed_at DateTime @default(now())
+  before     Json?
+  after      Json?
+
+  @@map("audit_logs")
+}
