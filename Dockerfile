@@ -1,20 +1,31 @@
-# 1. Build stage
-FROM node:20-alpine AS builder
+# 1. Build bosqichi
+FROM node:20 AS builder
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
+
 COPY . .
+
+# Prisma clientni generatsiya qilish
+RUN npx prisma generate
+
 RUN npm run build
 
-# 2. Production stage
-FROM node:20-alpine
+# 2. Run bosqichi
+FROM node:20 AS runner
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --only=production
-
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
 
+# Port Render uchun
+ENV PORT=4000
 EXPOSE 4000
-CMD ["node", "dist/src/main.js"]
+
+# Prisma client uchun ham kerak
+RUN npx prisma generate
+
+CMD ["npm", "run", "start:prod"]
