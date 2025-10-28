@@ -1,31 +1,24 @@
-# 1. Build bosqichi
-FROM node:20 AS builder
+# 1. Base image
+FROM node:18-alpine
+
+# 2. Working directory
 WORKDIR /app
 
+# 3. Package.json copy and install
 COPY package*.json ./
 RUN npm install
 
+# 4. Prisma generate
+RUN npx prisma generate
+
+# 5. Copy all source files
 COPY . .
 
-# Prisma clientni generatsiya qilish
-RUN npx prisma generate
-
+# 6. Build the NestJS project
 RUN npm run build
 
-# 2. Run bosqichi
-FROM node:20 AS runner
-WORKDIR /app
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prisma ./prisma
-
-# Port Render uchun
-ENV PORT=4000
+# 7. Expose port
 EXPOSE 4000
 
-# Prisma client uchun ham kerak
-RUN npx prisma generate
-
-CMD ["npm", "run", "start:prod"]
+# 8. Run migrations and start server
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
