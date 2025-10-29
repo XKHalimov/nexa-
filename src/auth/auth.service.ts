@@ -37,7 +37,7 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new UnauthorizedException('Parol xato');
 
-    const payload = { userId: user.id, email: user.email, role: user.role };
+    const payload = { sub: user.id, email: user.email, role: user.role };
 
     const token = await this.jwt.signAsync(payload, {
       secret: this.config.get<string>('JWT_SECRET'),
@@ -71,7 +71,7 @@ export class AuthService {
         },
       });
 
-      const payload = { userId: user.id, email: user.email, role: user.role };
+      const payload = { sub: user.id, email: user.email, role: user.role };
       const token = await this.jwt.signAsync(payload, {
         secret: this.config.get<string>('JWT_SECRET'),
         expiresIn: '7d',
