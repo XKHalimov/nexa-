@@ -5,15 +5,16 @@ import { GetUser } from 'src/auth/strategy/get-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Profile')
 @ApiBearerAuth()
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMyProfile(@GetUser('userId') userId: string) {
+    console.log('User ID:', userId);
     return this.profileService.getProfile(userId);
   }
   @Get(':id')
