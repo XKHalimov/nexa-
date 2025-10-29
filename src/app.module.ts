@@ -12,6 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    // ✅ Schedule faqat bir marta ishlatiladi
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -23,13 +24,10 @@ import { ScheduleModule } from '@nestjs/schedule';
     MessageModule,
     TranslationModule,
     UserModule,
-    ScheduleModule.forRoot(),
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(SetCurrentUserMiddleware)
-      .forRoutes('*'); 
+    consumer.apply(SetCurrentUserMiddleware).forRoutes('*');
   }
 }

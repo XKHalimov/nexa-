@@ -1,16 +1,20 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { TranslationService } from './translation.service';
+import { TranslateDto } from './dto/translate.dto';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Translation')
 @Controller('translation')
 export class TranslationController {
   constructor(private readonly translationService: TranslationService) {}
 
   @Post()
-  async translate(@Body() body: any) {
+  @ApiOperation({ summary: 'Matnni tarjima qilish' })
+  async translate(@Body() dto: TranslateDto) {
     return this.translationService.translateText(
-      body.text,
-      body.sourceLang,
-      body.targetLang,
+      dto.text,
+      dto.sourceLang,
+      dto.targetLang,
     );
   }
 }

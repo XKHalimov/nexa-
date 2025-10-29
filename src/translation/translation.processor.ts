@@ -20,52 +20,54 @@ export class TranslationProcessor {
     private readonly translationGateway: TranslationGateway,
   ) {}
 
+  
   @Cron(CronExpression.EVERY_5_SECONDS)
-  async processQueuedTranslations(): Promise<void> {
-    const queuedOutboxes = await this.prisma.translationOutbox.findMany({
-      where: { status: 'queued' },
-      take: 5,
-      include: { translation: true },
-    });
+  async handleQueuedTranslations(): Promise<void> {
+    try {
+      const queuedOutboxes = await this.prisma.translationOutbox.findMany({
+        where: { status: 'queued' },
+        take: 5,
+        include: { translation: true },
+      });
 
-    if (!queuedOutboxes.length) return;
+      if (!queuedOutboxes.length) return;
 
-    this.logger.log(`${queuedOutboxes.length} ta tarjima qayta ishlanmoqda...`);
+      this.logger.log(
+        `${queuedOutboxes.length} ta tarjima qayta ishlanmoqda...`,
+      );
 
-    for (const outbox of queuedOutboxes) {
-      await this.processOutboxItem(outbox);
+      for (const outbox of queuedOutboxes) {
+        await this.processOutboxItem(outbox);
+      }
+    } catch (err) {
+      this.logger.error(`handleQueuedTranslations xatolik: ${err.message}`);
     }
   }
 
+  
   private async processOutboxItem(outbox: any): Promise<void> {
     try {
-      // 1️⃣ Outbox statusini processing ga o‘zgartiramiz
       await this.prisma.translationOutbox.update({
         where: { id: outbox.id },
         data: { status: 'processing' },
       });
-  
-      // 2️⃣ Payloadni olish va tekshirish
+
       const payload = outbox.payload as TranslationPayload;
       if (!payload?.text || !payload?.source || !payload?.target) {
-        throw new Error('Payload maʼlumotlari toʻliq emas');
+        throw new Error('Payload maʼlumotlari to‘liq emas');
       }
-  
-      // 3️⃣ Tarjima qilish
+
       const result = await this.translationService.translateText(
         payload.text,
         payload.source,
         payload.target,
       );
-  
+
       const translatedText =
         typeof result === 'string' ? result : result.translatedText;
-  
-      if (!translatedText) {
-        throw new Error('Tarjima natijasi bo‘sh');
-      }
-  
-      // 4️⃣ Translation jadvalini update qilish
+
+      if (!translatedText) throw new Error('Tarjima natijasi bo‘sh');
+
       await this.prisma.translation.update({
         where: { id: outbox.translationId },
         data: {
@@ -73,8 +75,7 @@ export class TranslationProcessor {
           status: 'processed',
         },
       });
-  
-      // 5️⃣ Outbox statusini update qilish
+
       await this.prisma.translationOutbox.update({
         where: { id: outbox.id },
         data: {
@@ -82,20 +83,21 @@ export class TranslationProcessor {
           processedAt: new Date(),
         },
       });
-  
-      // 6️⃣ ❗ Shu yerda WebSocket orqali foydalanuvchiga yuborish
-      this.translationGateway.sendTranslationUpdate({
-        messageId: outbox.translation.messageId,
-        translatedText,
-      });
-  
-      this.logger.log(`Tarjima yakunlandi: ${outbox.id}`);
+
+      if (outbox.translation?.messageId) {
+        this.translationGateway.sendTranslationUpdate({
+          messageId: outbox.translation.messageId,
+          translatedText,
+        });
+      }
+
+      this.logger.log(`✅ Tarjima yakunlandi: ${outbox.id}`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Nomaʼlum xatolik';
-  
-      this.logger.error(`Tarjima xatosi [${outbox.id}]: ${errorMessage}`);
-  
+
+      this.logger.error(`❌ Tarjima xatosi [${outbox.id}]: ${errorMessage}`);
+
       await this.prisma.translationOutbox.update({
         where: { id: outbox.id },
         data: {
@@ -106,5 +108,4 @@ export class TranslationProcessor {
       });
     }
   }
-  
 }
