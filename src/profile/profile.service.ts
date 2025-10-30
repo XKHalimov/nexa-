@@ -40,12 +40,11 @@ export class ProfileService {
   }
 
   async getProfile(userId: string) {
-    console.log(userId)
     if (!userId) {
       throw new NotFoundException('userId topilmadi yoki token yaroqsiz');
     }
 
-    const profile = await this.prisma.profile.findUnique({
+    const profile = await this.prisma.profile.findFirst({
       where: { userId },
     });
 
