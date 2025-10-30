@@ -23,6 +23,7 @@ model User {
   conversationsCreated Conversation[]       @relation("UserCreatedConversations")
   members              ConversationMember[]
   messages             Message[]
+  xpLogs  XpLog[]
 
   @@map("users")
 }
@@ -141,3 +142,15 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+model XpLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  xpAmount  Int
+  createdAt DateTime @default(now())
+
+  @@map("xp_logs")
+}
+
+

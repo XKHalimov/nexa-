@@ -49,10 +49,10 @@ export class MessageGateway
     }
   }
   @SubscribeMessage('sendMessage')
-handleMessage(
-  @MessageBody() data: { content: string; conversationId: string },
-  @ConnectedSocket() socket: Socket,
-) {
-  socket.broadcast.emit('receiveMessage', data);
-}
+  handleMessage(
+    @MessageBody() data: { content: string; conversationId: string },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    socket.broadcast.emit('receiveMessage', data);
+  }
 }

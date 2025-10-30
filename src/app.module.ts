@@ -9,10 +9,10 @@ import { MessageModule } from './message/message.module';
 import { TranslationModule } from './translation/translation.module';
 import { UserModule } from './user/user.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { XpModule } from './xp/xp.module';
 
 @Module({
   imports: [
-    // ✅ Schedule faqat bir marta ishlatiladi
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -24,6 +24,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     MessageModule,
     TranslationModule,
     UserModule,
+    XpModule,
   ],
 })
 export class AppModule implements NestModule {

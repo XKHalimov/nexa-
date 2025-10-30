@@ -44,7 +44,7 @@ export class ProfileService {
       throw new NotFoundException('userId topilmadi yoki token yaroqsiz');
     }
 
-    const profile = await this.prisma.profile.findFirst({
+    const profile = await this.prisma.profile.findUnique({
       where: { userId },
     });
 
@@ -56,7 +56,7 @@ export class ProfileService {
   }
 
   async updateProfile(userId: string, dto: { firstName?: string; lastName?: string }) {
-    const profile = await this.prisma.profile.findUnique({
+    const profile = await this.prisma.profile.findFirst({
       where: { userId },
     });
 
