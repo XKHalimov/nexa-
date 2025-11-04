@@ -5,7 +5,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class XpService {
   constructor(private prisma: PrismaService) {}
 
-  // Foydalanuvchining jami XP sini olish
   async getUserXp(userId: string) {
     const result = await this.prisma.xpLog.aggregate({
       _sum: { xpAmount: true },
@@ -14,7 +13,6 @@ export class XpService {
     return result._sum.xpAmount ?? 0;
   }
 
-  // Foydalanuvchining XP darajasini hisoblash
   async getUserXpLevel(userId: string) {
     const totalXp = await this.getUserXp(userId);
 
@@ -30,7 +28,6 @@ export class XpService {
     };
   }
 
-  // XP qo'shish
   async addXp(userId: string, action: string, xpAmount?: number) {
     if (!userId || !action) {
       throw new BadRequestException('UserId va action kiritilishi kerak.');

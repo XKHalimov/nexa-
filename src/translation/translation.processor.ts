@@ -91,12 +91,12 @@ export class TranslationProcessor {
         });
       }
 
-      this.logger.log(`✅ Tarjima yakunlandi: ${outbox.id}`);
+      this.logger.log(`Tarjima yakunlandi: ${outbox.id}`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Nomaʼlum xatolik';
 
-      this.logger.error(`❌ Tarjima xatosi [${outbox.id}]: ${errorMessage}`);
+      this.logger.error(`Tarjima xatosi [${outbox.id}]: ${errorMessage}`);
 
       await this.prisma.translationOutbox.update({
         where: { id: outbox.id },

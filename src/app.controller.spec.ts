@@ -9,7 +9,7 @@ async function bootstrap() {
 
   setInterval(async () => {
     try {
-      await processor.processQueuedTranslations();
+      await processor.handleQueuedTranslations();
     } catch (err) {
       console.error('Xatolik yuz berdi:', err);
     }

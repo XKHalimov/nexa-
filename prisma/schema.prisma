@@ -24,6 +24,8 @@ model User {
   members              ConversationMember[]
   messages             Message[]
   xpLogs  XpLog[]
+  userbooster UserBooster[]
+
 
   @@map("users")
 }
@@ -152,5 +154,25 @@ model XpLog {
 
   @@map("xp_logs")
 }
+model Booster {
+  id         String        @id @default(uuid()) @db.Uuid
+  name       String
+  multiplier Float
+  duration   Int  
+  users      UserBooster[]
 
+  @@map("booster")
+}
 
+model UserBooster {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  boosterId  String   @db.Uuid
+  expiresAt  DateTime
+  active     Boolean  @default(false)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booster Booster  @relation(fields: [boosterId], references: [id])
+
+  @@map("user_booster")
+}

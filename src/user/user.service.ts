@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -6,6 +6,13 @@ export class UserService {
   private readonly logger = new Logger(UserService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private validateUuid(id: string) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new BadRequestException('Invalid UUID format.');
+    }
+  }
 
   async searchUsersRpc(searchTerm: string) {
     try {
@@ -29,31 +36,59 @@ export class UserService {
         take: 20,
       });
 
-      return users;
-    } catch (error) {
-      this.logger.error(`searchUsersRpc error: ${error.message}`);
-      throw new InternalServerErrorException('User search failed');
+      return {
+        success: true,
+        users,
+      };
+    } catch (error: any) {
+      this.logger.error(`searchUsersRpc error: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('User search failed.');
     }
   }
 
   async softDeleteUser(userId: string) {
     try {
+      this.validateUuid(userId);
+
       const user = await this.prisma.user.update({
         where: { id: userId },
         data: { isDeleted: true },
       });
 
-      return user;
-    } catch (error) {
-      this.logger.error(`softDeleteUser error: ${error.message}`);
-      throw new InternalServerErrorException('Soft delete failed');
+      return {
+        success: true,
+        message: 'User soft deleted successfully.',
+        user,
+      };
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException('User not found.');
+      }
+      this.logger.error(`softDeleteUser error: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Soft delete failed.');
     }
   }
+
   async updateRole(userId: string, role: 'admin' | 'user') {
-    return await this.prisma.user.update({
-      where: { id: userId },
-      data: { role },
-    });
+    try {
+      this.validateUuid(userId);
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: { role },
+      });
+
+      return {
+        success: true,
+        message: `User role updated to ${role} successfully.`,
+        user: updatedUser,
+      };
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException('User not found.');
+      }
+      this.logger.error(`updateRole error: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Role update failed.');
+    }
   }
-  
 }
