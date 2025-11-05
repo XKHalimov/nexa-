@@ -11,6 +11,7 @@ import { UserModule } from './user/user.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { XpModule } from './xp/xp.module';
 import { BoosterModule } from './booster/booster.module';
+import { PremiumModule } from './premium/premium.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { BoosterModule } from './booster/booster.module';
     UserModule,
     XpModule,
     BoosterModule,
+    PremiumModule,
   ],
 })
 export class AppModule implements NestModule {
