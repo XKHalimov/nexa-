@@ -9,6 +9,7 @@ import type { UserToken } from 'src/auth/dto/user-token.interface';
 export class XpController {
   constructor(private readonly xpService: XpService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('add')
   async addXp(@Body() body: AddXpDto, @GetUser() user: UserToken) {
     const userId = body.userId ?? user.userId;
@@ -26,5 +27,17 @@ export class XpController {
   @Get('me/level')
   async getMyXpLevel(@GetUser() user: UserToken) {
     return this.xpService.getUserXpLevel(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/status')
+  async getMyStatus(@GetUser() user: UserToken) {
+    return this.xpService.getUserXpLevel(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':userId/status')
+  async getUserStatus(@Param('userId') userId: string) {
+    return this.xpService.getUserStatus(userId);
   }
 }

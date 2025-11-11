@@ -12,6 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { XpModule } from './xp/xp.module';
 import { BoosterModule } from './booster/booster.module';
 import { PremiumModule } from './premium/premium.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PremiumModule } from './premium/premium.module';
     XpModule,
     BoosterModule,
     PremiumModule,
+    WalletModule,
   ],
 })
 export class AppModule implements NestModule {

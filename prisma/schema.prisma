@@ -20,42 +20,46 @@ model User {
   isDeleted Boolean  @default(false)
 
   profile              Profile?
-  conversationsCreated Conversation[]       @relation("UserCreatedConversations")
+  conversationsCreated Conversation[]        @relation("UserCreatedConversations")
   members              ConversationMember[]
   messages             Message[]
-  xpLogs  XpLog[]
-  userbooster UserBooster[]
-  premiumsubscription PremiumSubscription[]
-
+  xpLogs               XpLog[]
+  userBooster          UserBooster[]
+  premiumSubscription  PremiumSubscription[]
+  wallet               Wallet?
+  transactions         Transaction[]
+  levelId              String? @default(uuid()) @db.Uuid
+  level                Level?                @relation(fields: [levelId], references: [id])
+  userBadges           UserBadge[]
 
   @@map("users")
 }
 
 model Profile {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
   firstName String?
   lastName  String?
-  userId    String   @unique @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId    String    @unique @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  isDeleted Boolean  @default(false)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDeleted Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
 }
 
 model Conversation {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String    @id @default(uuid()) @db.Uuid
   title         String?
   bio           String?
   avatar        String?
-  isGroup       Boolean  @default(false)
-  isDeleted     Boolean @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  createdById   String?  @db.Uuid
-  lastMessageId String?  @db.Uuid
+  isGroup       Boolean   @default(false)
+  isDeleted     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?   @db.Uuid
+  lastMessageId String?   @db.Uuid
   lastMessageAt DateTime?
 
   createdBy User?                @relation("UserCreatedConversations", fields: [createdById], references: [id])
@@ -106,8 +110,8 @@ model Translation {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  message   Message             @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  outboxes  TranslationOutbox[]
+  message  Message             @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  outboxes TranslationOutbox[]
 
   @@map("translations")
 }
@@ -133,6 +137,7 @@ model TranslationOutbox {
 
   @@map("translation_outbox")
 }
+
 model AuditLog {
   id         BigInt   @id @default(autoincrement())
   table_name String
@@ -145,6 +150,7 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
 model XpLog {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @db.Uuid
@@ -155,28 +161,30 @@ model XpLog {
 
   @@map("xp_logs")
 }
+
 model Booster {
   id         String        @id @default(uuid()) @db.Uuid
   name       String
   multiplier Float
-  duration   Int  
+  duration   Int
   users      UserBooster[]
 
   @@map("booster")
 }
 
 model UserBooster {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @db.Uuid
-  boosterId  String   @db.Uuid
-  expiresAt  DateTime
-  active     Boolean  @default(false)
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  boosterId String   @db.Uuid
+  expiresAt DateTime
+  active    Boolean  @default(false)
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  booster Booster  @relation(fields: [boosterId], references: [id])
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booster Booster @relation(fields: [boosterId], references: [id])
 
   @@map("user_booster")
 }
+
 model PremiumSubscription {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @unique @db.Uuid
@@ -187,5 +195,55 @@ model PremiumSubscription {
   isActive  Boolean  @default(true)
 
   @@map("premium_subscriptions")
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique @db.Uuid
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id        String          @id @default(uuid())
+  userId    String          @db.Uuid
+  type      TransactionType
+  amount    Float
+  itemType  String?
+  itemId    String?
+  createdAt DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum TransactionType {
+  ADD_BALANCE
+  PURCHASE
+}
+model Level {
+  id    String  @id @default(uuid()) @db.Uuid
+  name  String
+  xpMin Int
+  xpMax Int
+  users User[]
+}
+
+model Badge {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String
+  condition  String
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  badgeId   String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
 }
 
