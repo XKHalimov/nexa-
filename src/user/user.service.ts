@@ -1,5 +1,12 @@
-import { Injectable, InternalServerErrorException, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UserService {
@@ -8,7 +15,8 @@ export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   private validateUuid(id: string) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
       throw new BadRequestException('Invalid UUID format.');
     }
@@ -89,6 +97,60 @@ export class UserService {
       }
       this.logger.error(`updateRole error: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Role update failed.');
+    }
+  }
+
+  async createUser(dto: CreateUserDto) {
+    try {
+      // email yoki username mavjudligini tekshirish
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          OR: [{ email: dto.email.trim().toLowerCase() }],
+        },
+      });
+
+      if (existingUser) {
+        return {
+          success: false,
+          message: 'Email yoki username allaqachon mavjud.',
+        };
+      }
+
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          username: dto.username,
+          password: dto.password,
+        },
+      });
+
+      if (dto.referrerId) {
+        await this.prisma.referral.create({
+          data: {
+            referrerId: dto.referrerId,
+            referredId: user.id,
+          },
+        });
+        const logs = await this.prisma.xpLog.findMany();
+        console.log(logs);
+        await this.prisma.xpLog.create({
+          data: {
+  
+            userId: dto.referrerId,
+            action: 'user_registered',
+            xpAmount: 100,
+          },
+        });
+      }
+
+      return {
+        success: true,
+        message: 'User created successfully.',
+        user,
+      };
+    } catch (error: any) {
+      this.logger.error(`createUser error: ${error.message}`, error.stack);
+      throw error;
     }
   }
 }

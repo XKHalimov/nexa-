@@ -1,79 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique
-  username  String?
-  password  String
-  firstName String?
-  lastName  String?
-  role      String   @default("user")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isDeleted Boolean  @default(false)
-
-  profile              Profile?
-  conversationsCreated Conversation[]        @relation("UserCreatedConversations")
-  members              ConversationMember[]
-  messages             Message[]
-  xpLogs               XpLog[]
-  userBooster          UserBooster[]
-  premiumSubscription  PremiumSubscription[]
-  wallet               Wallet?
+  email                String               @unique
+  password             String
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  isDeleted            Boolean              @default(false)
+  firstName            String?
+  lastName             String?
+  username             String?
+  id                   String               @id @default(uuid()) @db.Uuid
+  role                 String               @default("user")
+  levelId              String?              @default(uuid()) @db.Uuid
+  referredBy           Referral[]           @relation("UserReferred")
+  referralsMade        Referral[]           @relation("UserReferrals")
   transactions         Transaction[]
-  levelId              String? @default(uuid()) @db.Uuid
-  level                Level?                @relation(fields: [levelId], references: [id])
   userBadges           UserBadge[]
+  wallet               Wallet?
+  members              ConversationMember[]
+  conversationsCreated Conversation[]       @relation("UserCreatedConversations")
+  messages             Message[]
+  premiumSubscription  PremiumSubscription?
+  isPremium     Boolean         @default(false)
+  profile              Profile?
+  userBooster          UserBooster[]
+  level                Level?               @relation(fields: [levelId], references: [id])
+  xp Int @default(0)
+  xpLogs               XpLog[]
+  aiAccessLevel AiAccessLevel?  @relation(fields: [aiAccessLevelId], references: [id])
+  aiAccessLevelId String?
 
   @@map("users")
 }
 
 model Profile {
-  id        String    @id @default(uuid()) @db.Uuid
-  firstName String?
-  lastName  String?
-  userId    String    @unique @db.Uuid
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+  firstName String?
+  lastName  String?
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @unique @db.Uuid
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
 }
 
 model Conversation {
-  id            String    @id @default(uuid()) @db.Uuid
   title         String?
-  bio           String?
-  avatar        String?
-  isGroup       Boolean   @default(false)
-  isDeleted     Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  createdById   String?   @db.Uuid
-  lastMessageId String?   @db.Uuid
+  isGroup       Boolean              @default(false)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   lastMessageAt DateTime?
-
-  createdBy User?                @relation("UserCreatedConversations", fields: [createdById], references: [id])
-  members   ConversationMember[]
-  messages  Message[]
+  avatar        String?
+  bio           String?
+  id            String               @id @default(uuid()) @db.Uuid
+  createdById   String?              @db.Uuid
+  lastMessageId String?              @db.Uuid
+  isDeleted     Boolean              @default(false)
+  members       ConversationMember[]
+  createdBy     User?                @relation("UserCreatedConversations", fields: [createdById], references: [id])
+  messages      Message[]
 
   @@map("conversations")
 }
 
 model ConversationMember {
+  joinedAt       DateTime     @default(now())
   id             String       @id @default(uuid()) @db.Uuid
   conversationId String       @db.Uuid
   userId         String       @db.Uuid
-  joinedAt       DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -82,58 +86,47 @@ model ConversationMember {
 }
 
 model Message {
-  id             String   @id @default(uuid()) @db.Uuid
-  conversationId String   @db.Uuid
-  senderId       String   @db.Uuid
   content        String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  isDeleted      Boolean  @default(false)
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  translations Translation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  isDeleted      Boolean       @default(false)
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  senderId       String        @db.Uuid
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  translations   Translation[]
 
   @@map("messages")
 }
 
 model Translation {
-  id             String   @id @default(uuid()) @db.Uuid
-  messageId      String   @db.Uuid
   sourceLang     String
   targetLang     String
   translatedText String?
-  status         String   @default("pending")
+  status         String              @default("pending")
   provider       String?
   error          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  message  Message             @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  outboxes TranslationOutbox[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  id             String              @id @default(uuid()) @db.Uuid
+  messageId      String              @db.Uuid
+  outboxes       TranslationOutbox[]
+  message        Message             @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("translations")
 }
 
-enum OutboxStatus {
-  queued
-  processing
-  processed
-  failed
-}
-
 model TranslationOutbox {
-  id            String       @id @default(uuid()) @db.Uuid
-  translationId String       @db.Uuid
   payload       Json
   status        OutboxStatus @default(queued)
   attempts      Int          @default(0)
   error         String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
-
-  translation Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+  id            String       @id @default(uuid()) @db.Uuid
+  translationId String       @db.Uuid
+  translation   Translation  @relation(fields: [translationId], references: [id], onDelete: Cascade)
 
   @@map("translation_outbox")
 }
@@ -154,10 +147,10 @@ model AuditLog {
 model XpLog {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
   action    String
   xpAmount  Int
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("xp_logs")
 }
@@ -178,9 +171,8 @@ model UserBooster {
   boosterId String   @db.Uuid
   expiresAt DateTime
   active    Boolean  @default(false)
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  booster Booster @relation(fields: [boosterId], references: [id])
+  booster   Booster  @relation(fields: [boosterId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_booster")
 }
@@ -188,11 +180,11 @@ model UserBooster {
 model PremiumSubscription {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @unique @db.Uuid
-  planType  String
-  user      User     @relation(fields: [userId], references: [id])
   startDate DateTime @default(now())
   endDate   DateTime
   isActive  Boolean  @default(true)
+  planType  String
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("premium_subscriptions")
 }
@@ -202,8 +194,7 @@ model Wallet {
   userId    String   @unique @db.Uuid
   balance   Float    @default(0)
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Transaction {
@@ -214,16 +205,11 @@ model Transaction {
   itemType  String?
   itemId    String?
   createdAt DateTime        @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id])
 }
 
-enum TransactionType {
-  ADD_BALANCE
-  PURCHASE
-}
 model Level {
-  id    String  @id @default(uuid()) @db.Uuid
+  id    String @id @default(uuid()) @db.Uuid
   name  String
   xpMin Int
   xpMax Int
@@ -242,8 +228,38 @@ model UserBadge {
   userId    String   @db.Uuid
   badgeId   String   @db.Uuid
   createdAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id])
-  badge Badge @relation(fields: [badgeId], references: [id])
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
+model Referral {
+  id         String   @id @default(uuid())
+  referrerId String   @db.Uuid
+  referredId String   @db.Uuid
+  createdAt  DateTime @default(now())
+  referred   User     @relation("UserReferred", fields: [referredId], references: [id])
+  referrer   User     @relation("UserReferrals", fields: [referrerId], references: [id])
+}
+
+enum OutboxStatus {
+  queued
+  processing
+  processed
+  failed
+}
+
+enum TransactionType {
+  ADD_BALANCE
+  PURCHASE
+}
+model AiAccessLevel {
+  id        String   @id @default(uuid())
+  name      String
+  chatLimit Int
+  speed     Int      // 1 = sekin, 2 = normal, 3 = tez
+  xpFrom    Int?     // minimal XP (agar XP darajasiga bog‘lasangiz)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User[]
+}

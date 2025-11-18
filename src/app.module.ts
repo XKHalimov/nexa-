@@ -13,6 +13,7 @@ import { XpModule } from './xp/xp.module';
 import { BoosterModule } from './booster/booster.module';
 import { PremiumModule } from './premium/premium.module';
 import { WalletModule } from './wallet/wallet.module';
+import { ReferralModule } from './referral/referral.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { WalletModule } from './wallet/wallet.module';
     BoosterModule,
     PremiumModule,
     WalletModule,
+    ReferralModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -33,13 +38,20 @@ export class XpService {
       };
     } catch (error) {
       console.error('getUserXpLevel error:', error);
-      throw new InternalServerErrorException('Level hisoblashda xatolik yuz berdi.');
+      throw new InternalServerErrorException(
+        'Level hisoblashda xatolik yuz berdi.',
+      );
     }
   }
 
   async addXp(userId: string, action: string, xpAmount?: number) {
     if (!userId || !action) {
       throw new BadRequestException('UserId va action kiritilishi kerak.');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User topilmadi: ${userId}`);
     }
 
     try {
@@ -64,7 +76,9 @@ export class XpService {
       };
     } catch (error) {
       console.error('addXp error:', error);
-      throw new InternalServerErrorException('XP qo‘shishda xatolik yuz berdi.');
+      throw new InternalServerErrorException(
+        'XP qo‘shishda xatolik yuz berdi.',
+      );
     }
   }
 
@@ -84,12 +98,14 @@ export class XpService {
           await this.prisma.userBadge.create({
             data: { userId, badgeId: badge.id },
           });
-          console.log(`🎖 Badge berildi: ${badge.name} foydalanuvchiga ${userId}`);
+          console.log(`Badge berildi: ${badge.name} foydalanuvchiga ${userId}`);
         }
       }
     } catch (error) {
       console.error('checkAndUnlockBadges error:', error);
-      throw new InternalServerErrorException('Badge tekshirishda xatolik yuz berdi.');
+      throw new InternalServerErrorException(
+        'Badge tekshirishda xatolik yuz berdi.',
+      );
     }
   }
 
@@ -107,7 +123,49 @@ export class XpService {
       };
     } catch (error) {
       console.error('getUserStatus error:', error);
-      throw new InternalServerErrorException('Foydalanuvchi statusini olishda xatolik yuz berdi.');
+      throw new InternalServerErrorException(
+        'Foydalanuvchi statusini olishda xatolik yuz berdi.',
+      );
     }
   }
+  async assignAiAccessLevel(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  
+    const level = await this.prisma.aiAccessLevel.findFirst({
+      where: {
+        xpFrom: { lte: user?.xp }
+      },
+      orderBy: { xpFrom: 'desc' } 
+    });
+  
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { aiAccessLevelId: level?.id }
+    });
+  
+    return level;
+  }
+
+  async getAiLimits(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { aiAccessLevel: true }
+    });
+  
+    if (user?.isPremium) {
+      return {
+        level: 'Premium',
+        chatLimit: Infinity,
+        speed: 3
+      };
+    }
+  
+    return {
+      level: user?.aiAccessLevel?.name,
+      chatLimit: user?.aiAccessLevel?.chatLimit,
+      speed: user?.aiAccessLevel?.speed
+    };
+  }
+  
+  
 }

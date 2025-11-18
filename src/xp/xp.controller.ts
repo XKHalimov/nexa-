@@ -7,7 +7,10 @@ import type { UserToken } from 'src/auth/dto/user-token.interface';
 
 @Controller('xp')
 export class XpController {
-  constructor(private readonly xpService: XpService) {}
+  constructor(
+    private readonly xpService: XpService,
+    // private readonly aiService: AiService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('add')
@@ -39,5 +42,11 @@ export class XpController {
   @Get(':userId/status')
   async getUserStatus(@Param('userId') userId: string) {
     return this.xpService.getUserStatus(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('limit')
+  async getLimit(@GetUser() user: UserToken) {
+    return this.xpService.getAiLimits(user.userId);
   }
 }
